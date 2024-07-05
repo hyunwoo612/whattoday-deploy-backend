@@ -429,8 +429,10 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
       return res.status(400).json({ message: 'No file uploaded.' });
   }
 
+  // 전체 파일 경로에서 `/upload/` 이후의 부분만 추출
   const filePath = req.file.location;
-  console.log('File uploaded to:', filePath);
+  const relativeFilePath = filePath.split('/upload/')[1];
+  console.log('File uploaded to:', relativeFilePath);
 
   getStudentInfo(email, (err, result) => {
       if (err) {
@@ -459,7 +461,7 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
               setSafeUpdates(false, (err) => {
                   if (err) return handleDatabaseError(err, res, 'Error disabling safe mode:');
 
-                  db2.query(updateQuery, [filePath, date, schoolCode, grade, Class], (err, result) => {
+                  db2.query(updateQuery, [relativeFilePath, date, schoolCode, grade, Class], (err, result) => {
                       if (err) return handleDatabaseError(err, res, 'Database update error:');
 
                       setSafeUpdates(true, (err) => {
@@ -470,22 +472,23 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
                               return res.status(404).json({ message: 'Failed to update. No matching record found.' });
                           }
 
-                          res.json({ message: 'Image path updated successfully.', filePath });
+                          res.json({ message: 'Image path updated successfully.', filePath: relativeFilePath });
                       });
                   });
               });
           } else {
               const insertQuery = 'INSERT INTO images (date, path, grade, Class, email, schoolCode) VALUES (?, ?, ?, ?, ?, ?)';
 
-              db2.query(insertQuery, [date, filePath, grade, Class, email, schoolCode], (err, result) => {
+              db2.query(insertQuery, [date, relativeFilePath, grade, Class, email, schoolCode], (err, result) => {
                   if (err) return handleDatabaseError(err, res, 'Database insert error:');
 
-                  res.json({ message: 'File uploaded successfully.', filePath });
+                  res.json({ message: 'File uploaded successfully.', filePath: relativeFilePath });
               });
           }
       });
   });
 });
+
 
 
 app.get('/image', (req, res) => {
@@ -520,11 +523,12 @@ app.get('/image', (req, res) => {
       }
 
       if (results.length > 0) {
-        console.log('Image path found:', results[0].path);
-        res.json({ imagePath: results[0].path });
+        const imagePath = results[0].path;
+        console.log('Image path found:', imagePath);
+        const fullUrl = `https://uploadsdiaryimg.kr.object.ncloudstorage.com${imagePath}`;
+        res.json({ imagePath: fullUrl });
       } else {
         console.error('Image not found.');
-        res.json({ imagePath: defaultImageUrl });
       }
     });
   });
