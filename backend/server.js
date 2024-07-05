@@ -505,52 +505,43 @@ app.get('/image', async (req, res) => {
     return res.status(400).send('Missing required fields.');
   }
 
-  const studentSql = 'SELECT Class, grade, schoolCode FROM student WHERE email = ?';
-  db5.query(studentSql, [email], (err, studentResults) => {
-    if (err) {
-      console.error('Error fetching student info:', err);
-      return res.status(500).send({ message: 'Failed to fetch student info' });
-    } else if (studentResults.length === 0) {
+  try {
+    const studentSql = 'SELECT Class, grade, schoolCode FROM student WHERE email = ?';
+    const studentResults = await db5.promise().query(studentSql, [email]);
+
+    if (studentResults[0].length === 0) {
       console.error('No student info found for email:', email);
       return res.status(404).send({ message: 'No student info found for the given email' });
     }
 
-    const { Class, grade, schoolCode } = studentResults[0];
+    const { Class, grade, schoolCode } = studentResults[0][0];
     console.log('Fetched student info:', { Class, grade, schoolCode });
 
     const selectQuery = 'SELECT path FROM images WHERE date = ? AND grade = ? AND Class = ? AND schoolCode = ?';
-    db2.query(selectQuery, [date, grade, Class, schoolCode], async (err, results) => {
-      if (err) {
-        console.error('Database query error:', err);
-        return res.status(500).send('Database error.');
-      }
+    const results = await db2.promise().query(selectQuery, [date, grade, Class, schoolCode]);
 
-      if (results.length > 0) {
-        console.log('Image path found:', results[0].path);
-        const imagePath = results[0].path;
+    if (results[0].length > 0) {
+      console.log('Image path found:', results[0][0].path);
+      const imagePath = results[0][0].path;
 
-        // S3 버킷에서 이미지 가져오기
-        const params = {
-          Bucket: bucket_name,
-          Key: imagePath
-        };
+      const params = {
+        Bucket: bucket_name,
+        Key: imagePath
+      };
 
-        try {
-          const command = new GetObjectCommand(params);
-          const data = await s3Client.send(command);
+      const command = new GetObjectCommand(params);
+      const data = await s3Client.send(command);
 
-          res.writeHead(200, { 'Content-Type': 'image/jpeg' });
-          data.Body.pipe(res);
-        } catch (err) {
-          console.error('Error fetching image from S3:', err);
-          res.status(500).send('Error fetching image from S3.');
-        }
-      } else {
-        console.error('Image not found.');
-        res.status(404).send('Image not found.');
-      }
-    });
-  });
+      res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+      data.Body.pipe(res);
+    } else {
+      console.error('Image not found.');
+      res.status(404).send('Image not found.');
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).send('Internal server error.');
+  }
 });
 
 
