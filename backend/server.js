@@ -2,6 +2,8 @@ const express = require("express"); // npm i express | yarn add express
 const cors = require("cors"); // npm i cors | yarn add cors
 const mysql = require("mysql"); // npm i mysql | yarn add mysql
 const axios = require("axios");
+const { S3Client } = require('@aws-sdk/client-s3');
+const multerS3 = require('multer-s3');
 const multer = require("multer");
 const path = require('path');
 const admin = require('firebase-admin');
@@ -9,6 +11,17 @@ const fs = require('fs');
 const app = express();
 
 const dotenv = require('dotenv')
+
+const s3 = new S3Client();
+
+const s3Client = new S3Client({
+  endpoint: endpoint,
+  region: region,
+  credentials: {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey
+  }
+});
 
 dotenv.config();
 
@@ -26,6 +39,11 @@ const serviceAccount = {
   auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
   client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
 };
+
+const endpoint = process.env.S3_ENDPOINT || 'https://kr.object.ncloudstorage.com';
+const region = process.env.S3_REGION || 'kr-standard';
+const accessKeyId = process.env.S3_ACCESS_KEY;
+const secretAccessKey = process.env.S3_SECRET_KEY;
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -369,16 +387,20 @@ app.get("/personaldata", (req, res) => {
   });
 });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-      cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-      cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage: storage });
+// 업로드 설정 함수
+function setUpload(bucket) {
+  return multer({
+      storage: multerS3({
+          s3: s3Client,
+          bucket: bucket,
+          acl: 'public-read-write',
+          key: function (req, file, cb) {
+              const extension = path.extname(file.originalname);
+              cb(null, 'post/' + Date.now().toString() + extension);
+          },
+      }),
+  }).single('file'); // .single('file') 매우 중요!
+}
 
 const storage2 = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -391,73 +413,64 @@ filename: (req, file, cb) => {
 
 const upload2 = multer({ storage : storage2 });
 
-app.post('/upload', upload.single('file'), (req, res) => {
+const setSafeUpdates = (isEnabled, callback) => {
+  const query = `SET SQL_SAFE_UPDATES = ${isEnabled ? 1 : 0}`;
+  db2.query(query, callback);
+};
+
+app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
   const { email, date } = req.body;
   console.log('Received email:', email, 'Received date:', date);
 
   if (!date || !email) {
       console.error('Missing required fields:', { email, date });
-      return res.status(400).send('Missing required fields.');
+      return res.status(400).json({ message: 'Missing required fields.' });
   }
 
   if (!req.file) {
       console.error('No file uploaded.');
-      return res.status(400).send('No file uploaded.');
+      return res.status(400).json({ message: 'No file uploaded.' });
   }
 
-  const filePath = `/uploads/${req.file.filename}`;
+  const filePath = req.file.location;
   console.log('File uploaded to:', filePath);
 
   getStudentInfo(email, (err, result) => {
       if (err) {
           console.error('Error fetching class and grade:', err);
-          return res.status(err.status).send(err.message);
+          return res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
       }
 
       const { Class, grade, schoolCode } = result;
       console.log('Fetched class and grade:', { Class, grade, schoolCode });
 
       const selectQuery = 'SELECT path FROM images WHERE date = ? AND grade = ? AND Class = ? AND schoolCode = ?';
-      console.log('Executing select query:', selectQuery, [date, grade, Class, schoolCode]);
       db2.query(selectQuery, [date, grade, Class, schoolCode], (err, results) => {
           if (err) {
               console.error('Database query error:', err);
-              return res.status(500).send('Database error.');
+              return res.status(500).json({ message: 'Database error.' });
           }
 
-          console.log('Select query results:', results);
+          const handleDatabaseError = (err, res, message) => {
+              console.error(message, err);
+              return res.status(500).json({ message: 'Database error.' });
+          };
 
           if (results.length > 0) {
-              console.log('Updating existing image path');
               const updateQuery = 'UPDATE images SET path = ? WHERE date = ? AND schoolCode = ? AND grade = ? AND Class = ?';
-              console.log('Update query:', updateQuery, [filePath, date, schoolCode, grade, Class]);
 
-              // Safe mode 비활성화
-              console.log('Disabling safe mode');
-              db2.query('SET SQL_SAFE_UPDATES = 0', (err) => {
-                  if (err) {
-                      console.error('Error disabling safe mode:', err);
-                      return res.status(500).send('Database error.');
-                  }
+              setSafeUpdates(false, (err) => {
+                  if (err) return handleDatabaseError(err, res, 'Error disabling safe mode:');
 
-                  db2.query(updateQuery, [filePath, date, schoolCode, grade, Class, email], (err, result) => {
-                      if (err) {
-                          console.error('Database update error:', err);
-                          return res.status(500).send('Database error.');
-                      }
-                      console.log('Image path updated successfully. Affected rows:', result.affectedRows);
+                  db2.query(updateQuery, [filePath, date, schoolCode, grade, Class], (err, result) => {
+                      if (err) return handleDatabaseError(err, res, 'Database update error:');
 
-                      // Safe mode 다시 활성화
-                      console.log('Enabling safe mode');
-                      db2.query('SET SQL_SAFE_UPDATES = 1', (err) => {
-                          if (err) {
-                              console.error('Error enabling safe mode:', err);
-                              return res.status(500).send('Database error.');
-                          }
+                      setSafeUpdates(true, (err) => {
+                          if (err) return handleDatabaseError(err, res, 'Error enabling safe mode:');
 
                           if (result.affectedRows === 0) {
                               console.error('No rows affected. Update failed.');
-                              return res.status(404).send('Failed to update. No matching record found.');
+                              return res.status(404).json({ message: 'Failed to update. No matching record found.' });
                           }
 
                           res.json({ message: 'Image path updated successfully.', filePath });
@@ -465,16 +478,11 @@ app.post('/upload', upload.single('file'), (req, res) => {
                   });
               });
           } else {
-              console.log('Inserting new image path');
               const insertQuery = 'INSERT INTO images (date, path, grade, Class, email, schoolCode) VALUES (?, ?, ?, ?, ?, ?)';
-              console.log('Insert query:', insertQuery, [date, filePath, grade, Class, email, schoolCode]);
 
               db2.query(insertQuery, [date, filePath, grade, Class, email, schoolCode], (err, result) => {
-                  if (err) {
-                      console.error('Database insert error:', err);
-                      return res.status(500).send('Database error.');
-                  }
-                  console.log('File uploaded and path inserted successfully. Insert ID:', result.insertId);
+                  if (err) return handleDatabaseError(err, res, 'Database insert error:');
+
                   res.json({ message: 'File uploaded successfully.', filePath });
               });
           }
