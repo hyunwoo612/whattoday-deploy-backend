@@ -433,7 +433,7 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
   const filePath = req.file.location;
   console.log('Full file path:', filePath);
   
-  const relativeFilePath = filePath.split('/upload/')[1];
+  const relativeFilePath = filePath.split('/post/')[1];
   console.log('Relative file path:', relativeFilePath);
 
   if (!relativeFilePath) {
