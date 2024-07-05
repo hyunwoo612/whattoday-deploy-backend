@@ -431,8 +431,15 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
 
   // 전체 파일 경로에서 `/upload/` 이후의 부분만 추출
   const filePath = req.file.location;
+  console.log('Full file path:', filePath);
+  
   const relativeFilePath = filePath.split('/upload/')[1];
-  console.log('File uploaded to:', relativeFilePath);
+  console.log('Relative file path:', relativeFilePath);
+
+  if (!relativeFilePath) {
+      console.error('Relative file path is invalid.');
+      return res.status(400).json({ message: 'Invalid file path.' });
+  }
 
   getStudentInfo(email, (err, result) => {
       if (err) {
@@ -488,7 +495,6 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
       });
   });
 });
-
 
 
 app.get('/image', (req, res) => {
