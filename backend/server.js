@@ -94,6 +94,8 @@ const s3Client = new S3Client({
   }
 });
 
+const bucket_name = 'uploadsdiaryimg';
+
 app.use(
   cors({
     origin: "*", // 출처 허용 옵션
@@ -519,7 +521,24 @@ app.get('/image', (req, res) => {
 
       if (results.length > 0) {
         console.log('Image path found:', results[0].path);
-        res.json({ imagePath: results[0].path });
+        const imagePath = results[0].path;
+
+        // S3 버킷에서 이미지 가져오기
+        const params = {
+          Bucket: bucket_name,
+          Key: imagePath
+        };
+
+        s3Client.getObject(params, (err, data) => {
+          if (err) {
+            console.error('Error fetching image from S3:', err);
+            return res.status(500).send('Error fetching image from S3.');
+          }
+
+          res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+          res.write(data.Body, 'binary');
+          res.end(null, 'binary');
+        });
       } else {
         console.error('Image not found.');
         res.status(404).send('Image not found.');
