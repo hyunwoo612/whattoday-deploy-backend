@@ -807,7 +807,6 @@ app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
   }
 });
 
-
 app.get('/getimg', (req, res) => {
   const email = req.query.email; // 쿼리 파라미터에서 이메일 가져오기
 
@@ -824,17 +823,11 @@ app.get('/getimg', (req, res) => {
 
     if (results.length > 0) {
       const photoURL = results[0].photoURL;
-      const imagePath = path.join(__dirname, photoURL);
+      const imageURL = `https://kr.object.ncloudstorage.com/profileimg/post/${photoURL}`;
 
       // 이미지 파일이 존재하는지 확인하고 클라이언트에 전송
-      fs.access(imagePath, fs.constants.F_OK, (fsErr) => {
-        if (fsErr) {
-          console.error('File not found:', imagePath);
-          return res.status(404).send('File not found.');
-        }
-
-        res.sendFile(imagePath);
-      });
+      // 여기에서 fs.access를 사용하지 않고, 단순히 URL을 클라이언트에 전달합니다.
+      res.redirect(imageURL);
     } else {
       res.status(404).send('Email not found.');
     }
