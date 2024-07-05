@@ -761,6 +761,8 @@ app.post('/profile', (req, res) => {
   });
 });
 
+const path = require('path');
+
 app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
   try {
       if (!req.file) {
@@ -777,6 +779,7 @@ app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
       }
 
       const filePath2 = req.file.location;
+      const fileName = path.basename(filePath2); // 파일 이름만 추출
 
       const selectQuery = 'SELECT email FROM student WHERE email = ?';
       db5.query(selectQuery, [email], (err, results) => {
@@ -788,12 +791,12 @@ app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
           if (results.length > 0) {
               // 이메일이 존재하면 photoURL 업데이트
               const updateQuery = 'UPDATE student SET photoURL = ? WHERE email = ?';
-              db5.query(updateQuery, [filePath2, email], (updateErr, updateResults) => {
+              db5.query(updateQuery, [fileName, email], (updateErr, updateResults) => {
                   if (updateErr) {
                       console.error('Database error:', updateErr);
                       return res.status(500).send('Database error.');
                   }
-                  res.json({ message: 'Photo URL updated successfully.', filePath: filePath2 });
+                  res.json({ message: 'Photo URL updated successfully.', filePath: fileName });
               });
           } else {
               // 이메일이 존재하지 않으면 에러 반환
@@ -805,6 +808,7 @@ app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
       res.status(400).json({ message: error.message });
   }
 });
+
 
 app.get('/getimg', (req, res) => {
   const email = req.query.email; // 쿼리 파라미터에서 이메일 가져오기
