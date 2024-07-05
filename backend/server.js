@@ -761,8 +761,6 @@ app.post('/profile', (req, res) => {
   });
 });
 
-const path = require('path');
-
 app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
   try {
       if (!req.file) {
