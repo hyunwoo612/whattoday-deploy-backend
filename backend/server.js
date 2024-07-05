@@ -7,7 +7,6 @@ const multerS3 = require('multer-s3');
 const multer = require("multer");
 const path = require('path');
 const admin = require('firebase-admin');
-const fs = require('fs');
 const app = express();
 
 const dotenv = require('dotenv')
@@ -398,17 +397,6 @@ function setUpload(bucket) {
       }),
   }).single('file'); // .single('file') 매우 중요!
 }
-
-const storage2 = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'profileimg/');
-},
-filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-}
-});
-
-const upload2 = multer({ storage : storage2 });
 
 const setSafeUpdates = (isEnabled, callback) => {
   const query = `SET SQL_SAFE_UPDATES = ${isEnabled ? 1 : 0}`;
@@ -808,6 +796,10 @@ app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
 });
 
 app.get('/getimg', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // 모든 도메인 허용
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST'); // 허용할 메소드
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // 허용할 헤더
+
   const email = req.query.email; // 쿼리 파라미터에서 이메일 가져오기
 
   if (!email) {
@@ -825,13 +817,12 @@ app.get('/getimg', (req, res) => {
       const photoURL = results[0].photoURL;
       const imageURL = `https://kr.object.ncloudstorage.com/profileimg/post/${photoURL}`;
 
-      // 이미지 파일이 존재하는지 확인하고 클라이언트에 전송
-      // 여기에서 fs.access를 사용하지 않고, 단순히 URL을 클라이언트에 전달합니다.
       res.redirect(imageURL);
     } else {
       res.status(404).send('Email not found.');
     }
   });
 });
+
 
 
