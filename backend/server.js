@@ -547,6 +547,30 @@ app.get('/image', (req, res) => {
   });
 });
 
+// S3 버킷 CORS 설정
+const params = {
+  Bucket: bucket_name,
+  CORSConfiguration: {
+    CORSRules: [
+      {
+        AllowedHeaders: ["*"],
+        AllowedMethods: ["GET", "PUT"],
+        AllowedOrigins: ["*"],
+        MaxAgeSeconds: 3000,
+      },
+    ],
+  },
+};
+
+(async () => {
+  // Set CORS
+  await s3Client.putBucketCors(params).promise();
+
+  // Get CORS
+  const response = await s3Client.getBucketCors({ Bucket: bucket_name }).promise();
+  console.log(JSON.stringify(response, null, 2));
+})();
+
 
 // 다이어리 항목 추가
 app.post('/diary/add', (req, res) => {
