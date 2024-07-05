@@ -530,8 +530,6 @@ app.get('/image', (req, res) => {
   });
 });
 
-
-
 // 다이어리 항목 추가
 app.post('/diary/add', (req, res) => {
   const { email, date, content } = req.body;
