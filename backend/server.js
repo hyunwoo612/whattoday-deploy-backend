@@ -488,7 +488,7 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
 });
 
 
-app.get('/image', async (req, res) => {
+app.get('/image', (req, res) => {
   const { date, email } = req.query;
   console.log('Received email:', email, 'Received date:', date);
 
@@ -497,9 +497,12 @@ app.get('/image', async (req, res) => {
     return res.status(400).send('Missing required fields.');
   }
 
-  try {
-    const studentSql = 'SELECT Class, grade, schoolCode FROM student WHERE email = ?';
-    const [studentResults] = await db5.promise().query(studentSql, [email]);
+  const studentSql = 'SELECT Class, grade, schoolCode FROM student WHERE email = ?';
+  db5.query(studentSql, [email], (studentErr, studentResults) => {
+    if (studentErr) {
+      console.error('Database query error:', studentErr);
+      return res.status(500).send('Database error.');
+    }
 
     if (studentResults.length === 0) {
       console.error('No student info found for email:', email);
@@ -510,20 +513,23 @@ app.get('/image', async (req, res) => {
     console.log('Fetched student info:', { Class, grade, schoolCode });
 
     const selectQuery = 'SELECT path FROM images WHERE date = ? AND grade = ? AND Class = ? AND schoolCode = ?';
-    const [results] = await db2.promise().query(selectQuery, [date, grade, Class, schoolCode]);
+    db2.query(selectQuery, [date, grade, Class, schoolCode], (imageErr, results) => {
+      if (imageErr) {
+        console.error('Database query error:', imageErr);
+        return res.status(500).send('Database error.');
+      }
 
-    if (results.length > 0) {
-      console.log('Image path found:', results[0].path);
-      res.json({ imagePath: results[0].path });
-    } else {
-      console.error('Image not found.');
-    }
-
-  } catch (err) {
-    console.error('Database query error:', err);
-    res.status(500).send('Database error.');
-  }
+      if (results.length > 0) {
+        console.log('Image path found:', results[0].path);
+        res.json({ imagePath: results[0].path });
+      } else {
+        console.error('Image not found.');
+        res.json({ imagePath: defaultImageUrl });
+      }
+    });
+  });
 });
+
 
 
 // 다이어리 항목 추가
