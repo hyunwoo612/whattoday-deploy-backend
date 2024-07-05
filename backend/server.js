@@ -2,7 +2,7 @@ const express = require("express"); // npm i express | yarn add express
 const cors = require("cors"); // npm i cors | yarn add cors
 const mysql = require("mysql"); // npm i mysql | yarn add mysql
 const axios = require("axios");
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
 const multer = require("multer");
 const path = require('path');
@@ -94,8 +94,6 @@ const s3Client = new S3Client({
   }
 });
 
-const bucket_name = 'uploadsdiaryimg';
-
 app.use(
   cors({
     origin: "*", // 출처 허용 옵션
@@ -103,12 +101,6 @@ app.use(
     optionsSuccessStatus: 200, // 응답 상태 200으로 설정
   })
 );
-
-app.use(cors({
-  origin: 'https://whattoday-deploy-frontend.vercel.app',
-  methods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
 
 // post 요청 시 값을 객체로 바꿔줌
 app.use(express.urlencoded({ extended: true }));
@@ -507,40 +499,29 @@ app.get('/image', async (req, res) => {
 
   try {
     const studentSql = 'SELECT Class, grade, schoolCode FROM student WHERE email = ?';
-    const studentResults = await db5.promise().query(studentSql, [email]);
+    const [studentResults] = await db5.promise().query(studentSql, [email]);
 
-    if (studentResults[0].length === 0) {
+    if (studentResults.length === 0) {
       console.error('No student info found for email:', email);
       return res.status(404).send({ message: 'No student info found for the given email' });
     }
 
-    const { Class, grade, schoolCode } = studentResults[0][0];
+    const { Class, grade, schoolCode } = studentResults[0];
     console.log('Fetched student info:', { Class, grade, schoolCode });
 
     const selectQuery = 'SELECT path FROM images WHERE date = ? AND grade = ? AND Class = ? AND schoolCode = ?';
-    const results = await db2.promise().query(selectQuery, [date, grade, Class, schoolCode]);
+    const [results] = await db2.promise().query(selectQuery, [date, grade, Class, schoolCode]);
 
-    if (results[0].length > 0) {
-      console.log('Image path found:', results[0][0].path);
-      const imagePath = results[0][0].path;
-
-      const params = {
-        Bucket: bucket_name,
-        Key: imagePath
-      };
-
-      const command = new GetObjectCommand(params);
-      const data = await s3Client.send(command);
-
-      res.writeHead(200, { 'Content-Type': 'image/jpeg' });
-      data.Body.pipe(res);
+    if (results.length > 0) {
+      console.log('Image path found:', results[0].path);
+      res.json({ imagePath: results[0].path });
     } else {
       console.error('Image not found.');
-      res.status(404).send('Image not found.');
     }
+
   } catch (err) {
-    console.error('Error:', err);
-    res.status(500).send('Internal server error.');
+    console.error('Database query error:', err);
+    res.status(500).send('Database error.');
   }
 });
 
