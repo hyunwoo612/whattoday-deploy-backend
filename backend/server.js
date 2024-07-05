@@ -429,7 +429,6 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
       return res.status(400).json({ message: 'No file uploaded.' });
   }
 
-  // 전체 파일 경로에서 `/upload/` 이후의 부분만 추출
   const filePath = req.file.location;
   console.log('Full file path:', filePath);
   
@@ -531,7 +530,7 @@ app.get('/image', (req, res) => {
       if (results.length > 0) {
         const imagePath = results[0].path;
         console.log('Image path found:', imagePath);
-        const fullUrl = `https://uploadsdiaryimg.kr.object.ncloudstorage.com${imagePath}`;
+        const fullUrl = `https://uploadsdiaryimg.kr.object.ncloudstorage.com/post/${imagePath}`;
         res.json({ imagePath: fullUrl });
       } else {
         console.error('Image not found.');
