@@ -104,6 +104,12 @@ app.use(
   })
 );
 
+app.use(cors({
+  origin: 'https://whattoday-deploy-frontend.vercel.app',
+  methods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 // post 요청 시 값을 객체로 바꿔줌
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json()); // JSON 형태의 요청을 파싱하도록 추가
@@ -546,30 +552,6 @@ app.get('/image', (req, res) => {
     });
   });
 });
-
-// S3 버킷 CORS 설정
-const params = {
-  Bucket: bucket_name,
-  CORSConfiguration: {
-    CORSRules: [
-      {
-        AllowedHeaders: ["*"],
-        AllowedMethods: ["GET", "PUT"],
-        AllowedOrigins: ["*"],
-        MaxAgeSeconds: 3000,
-      },
-    ],
-  },
-};
-
-(async () => {
-  // Set CORS
-  await s3Client.putBucketCors(params).promise();
-
-  // Get CORS
-  const response = await s3Client.getBucketCors({ Bucket: bucket_name }).promise();
-  console.log(JSON.stringify(response, null, 2));
-})();
 
 
 // 다이어리 항목 추가
