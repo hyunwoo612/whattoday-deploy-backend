@@ -33,6 +33,7 @@ admin.initializeApp({
 
 const db = mysql.createPool({
   host: process.env.DB_HOST, // 호스트
+  port: process.env.DB_PORT,
   user: process.env.DB_USER, // 데이터베이스 계정
   password: process.env.DB_PASSWORD, // 데이터베이스 비밀번호
   database: "personaldata", // 사용할 데이터베이스
@@ -40,6 +41,7 @@ const db = mysql.createPool({
 
 const db2 = mysql.createConnection({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: "image_uploads"
@@ -47,6 +49,7 @@ const db2 = mysql.createConnection({
 
 const db3 = mysql.createPool({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: "diary_uploads"
@@ -54,6 +57,7 @@ const db3 = mysql.createPool({
 
 const db4 = mysql.createConnection({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
   user: process.env.DB_USER, // 데이터베이스 사용자명
   password: process.env.DB_PASSWORD, // 데이터베이스 비밀번호
   database: 'school_num' // 데이터베이스 이름
@@ -61,6 +65,7 @@ const db4 = mysql.createConnection({
 
 const db5 = mysql.createConnection({
   host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: 'today'
