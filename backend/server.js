@@ -796,31 +796,27 @@ app.post('/uploadimg', setUpload('profileimg'), (req, res) => {
 });
 
 app.get('/getimg', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*'); // 모든 도메인 허용
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST'); // 허용할 메소드
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // 허용할 헤더
-
-  const email = req.query.email; // 쿼리 파라미터에서 이메일 가져오기
+  const email = req.query.email; // Get the email from the query parameter
 
   if (!email) {
-    return res.status(400).send('Email is required.');
+      return res.status(400).send('Email is required.');
   }
 
   const selectQuery = 'SELECT photoURL FROM student WHERE email = ?';
   db5.query(selectQuery, [email], (err, results) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).send('Database error.');
-    }
+      if (err) {
+          console.error('Database error:', err);
+          return res.status(500).send('Database error.');
+      }
 
-    if (results.length > 0) {
-      const photoURL = results[0].photoURL;
-      const imageURL = `https://kr.object.ncloudstorage.com/profileimg/post/${photoURL}`;
+      if (results.length > 0) {
+          const photoURL = results[0].photoURL;
+          const imageURL = `https://kr.object.ncloudstorage.com/profileimg/post/${photoURL}`;
 
-      res.redirect(imageURL);
-    } else {
-      res.status(404).send('Email not found.');
-    }
+          res.json({ imagePath: imageURL });
+      } else {
+          res.status(404).send({ message: 'Email not found.' });
+      }
   });
 });
 
