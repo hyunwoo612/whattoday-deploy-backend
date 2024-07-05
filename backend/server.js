@@ -496,7 +496,7 @@ app.post('/upload', setUpload('uploadsdiaryimg'), (req, res) => {
 });
 
 
-app.get('/image', (req, res) => {
+app.get('/image', async (req, res) => {
   const { date, email } = req.query;
   console.log('Received email:', email, 'Received date:', date);
 
@@ -519,7 +519,7 @@ app.get('/image', (req, res) => {
     console.log('Fetched student info:', { Class, grade, schoolCode });
 
     const selectQuery = 'SELECT path FROM images WHERE date = ? AND grade = ? AND Class = ? AND schoolCode = ?';
-    db2.query(selectQuery, [date, grade, Class, schoolCode], (err, results) => {
+    db2.query(selectQuery, [date, grade, Class, schoolCode], async (err, results) => {
       if (err) {
         console.error('Database query error:', err);
         return res.status(500).send('Database error.');
@@ -535,16 +535,16 @@ app.get('/image', (req, res) => {
           Key: imagePath
         };
 
-        s3Client.getObject(params, (err, data) => {
-          if (err) {
-            console.error('Error fetching image from S3:', err);
-            return res.status(500).send('Error fetching image from S3.');
-          }
+        try {
+          const command = new GetObjectCommand(params);
+          const data = await s3Client.send(command);
 
           res.writeHead(200, { 'Content-Type': 'image/jpeg' });
-          res.write(data.Body, 'binary');
-          res.end(null, 'binary');
-        });
+          data.Body.pipe(res);
+        } catch (err) {
+          console.error('Error fetching image from S3:', err);
+          res.status(500).send('Error fetching image from S3.');
+        }
       } else {
         console.error('Image not found.');
         res.status(404).send('Image not found.');
