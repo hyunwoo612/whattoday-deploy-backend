@@ -12,17 +12,6 @@ const app = express();
 
 const dotenv = require('dotenv')
 
-const s3 = new S3Client();
-
-const s3Client = new S3Client({
-  endpoint: endpoint,
-  region: region,
-  credentials: {
-      accessKeyId: accessKeyId,
-      secretAccessKey: secretAccessKey
-  }
-});
-
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
@@ -96,6 +85,14 @@ db2.connect((err) => {
   }
 });
 
+const s3Client = new S3Client({
+  endpoint: endpoint,
+  region: region,
+  credentials: {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey
+  }
+});
 
 app.use(
   cors({
