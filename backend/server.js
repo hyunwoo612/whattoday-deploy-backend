@@ -86,6 +86,22 @@ const db6 = mysql.createConnection({
   database: 'sign'
 });
 
+const db7 = mysql.createConnection({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: 'school_department'  // 데이터베이스명
+});
+
+db7.connect((err) => {
+  if (err) {
+    console.error('데이터베이스 연결 실패:', err);
+    return;
+  }
+  console.log('db7 데이터베이스에 연결되었습니다.');
+});
+
 db6.connect((err) => {
   if (err) {
     console.error('DB 연결 실패:', err);
@@ -735,6 +751,22 @@ app.post('/getSchools', (req, res) => {
   const offset = (page - 1) * limit;
   const sql = `SELECT 학교명, 행정표준코드 FROM ?? LIMIT ? OFFSET ?`; // 행정표준코드 추가
   db4.query(sql, [table, parseInt(limit), parseInt(offset)], (err, results) => {
+    if (err) {
+      console.error(err);
+      res.status(500).send('서버 오류');
+      return;
+    }
+    res.json(results);
+  });
+});
+
+app.post('/getDepartment', (req, res) => {
+  const { office, page, limit } = req.body;
+  const table = office.toLowerCase(); // 테이블명으로 사용
+
+  const offset = (page - 1) * limit;
+  const sql = `SELECT 학교명, 행정표준코드, 학과명 FROM ?? LIMIT ? OFFSET ?`; // 학과명 추가
+  db7.query(sql, [table, parseInt(limit), parseInt(offset)], (err, results) => {
     if (err) {
       console.error(err);
       res.status(500).send('서버 오류');
