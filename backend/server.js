@@ -156,6 +156,40 @@ app.post('/signup', async (req, res) => {
   }
 });
 
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).send('이메일과 비밀번호를 입력해주세요.');
+  }
+
+  try {
+    const query = 'SELECT * FROM login WHERE email = ?';
+    db.query(query, [email], async (err, results) => {
+      if (err) {
+        console.error('DB 조회 실패:', err);
+        return res.status(500).send('서버 오류');
+      }
+
+      if (results.length === 0) {
+        return res.status(401).send('이메일 또는 비밀번호가 잘못되었습니다.');
+      }
+
+      const user = results[0];
+      const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordMatch) {
+        return res.status(401).send('이메일 또는 비밀번호가 잘못되었습니다.');
+      }
+
+      res.status(200).send('로그인 성공');
+    });
+  } catch (err) {
+    console.error('로그인 처리 실패:', err);
+    res.status(500).send('서버 오류');
+  }
+});
+
 app.get("/schooldata", (req, res) => {
   const email = req.query.email;
   console.log('Received email:', email);
