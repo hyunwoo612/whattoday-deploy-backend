@@ -6,6 +6,7 @@ const { S3Client } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
 const multer = require("multer");
 const path = require('path');
+const bcrypt = require('bcrypt');
 const admin = require('firebase-admin');
 const app = express();
 
@@ -77,6 +78,22 @@ const db5 = mysql.createConnection({
   database: 'today'
 });
 
+const db6 = mysql.createConnection({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: 'sign'
+});
+
+db6.connect((err) => {
+  if (err) {
+    console.error('DB 연결 실패:', err);
+  } else {
+    console.log('DB 연결 성공');
+  }
+});
+
 db2.connect((err) => {
   if (err) {
       console.error('MySQL connection error:', err);
@@ -113,6 +130,30 @@ app.get('/', (req, res)=>{
 
 app.listen(PORT, () => {
 	console.log(PORT, '번 포트에서 대기 중');
+});
+
+app.post('/signup', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).send('이메일과 비밀번호를 입력해주세요.');
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const query = 'INSERT INTO login (email, password) VALUES (?, ?)';
+    db.query(query, [email, hashedPassword], (err, result) => {
+      if (err) {
+        console.error('DB 저장 실패:', err);
+        return res.status(500).send('서버 오류');
+      }
+      res.status(201).send('회원가입 성공');
+    });
+  } catch (err) {
+    console.error('비밀번호 해시화 실패:', err);
+    res.status(500).send('서버 오류');
+  }
 });
 
 app.get("/schooldata", (req, res) => {
