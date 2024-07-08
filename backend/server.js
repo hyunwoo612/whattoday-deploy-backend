@@ -165,7 +165,7 @@ app.post('/login', async (req, res) => {
 
   try {
     const query = 'SELECT * FROM login WHERE email = ?';
-    db.query(query, [email], async (err, results) => {
+    db6.query(query, [email], async (err, results) => {
       if (err) {
         console.error('DB 조회 실패:', err);
         return res.status(500).send('서버 오류');
