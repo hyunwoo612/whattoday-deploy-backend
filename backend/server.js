@@ -143,7 +143,7 @@ app.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const query = 'INSERT INTO login (email, password) VALUES (?, ?)';
-    db.query(query, [email, hashedPassword], (err, result) => {
+    db6.query(query, [email, hashedPassword], (err, result) => {
       if (err) {
         console.error('DB 저장 실패:', err);
         return res.status(500).send('서버 오류');
