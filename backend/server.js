@@ -148,7 +148,16 @@ app.post('/signup', async (req, res) => {
         console.error('DB 저장 실패:', err);
         return res.status(500).send('서버 오류');
       }
-      res.status(201).send('회원가입 성공');
+
+      // db6에 저장이 성공한 경우, db5의 student 테이블에 이메일을 삽입
+      const studentQuery = 'INSERT INTO student (email) VALUES (?)';
+      db5.query(studentQuery, [email], (err, result) => {
+        if (err) {
+          console.error('DB5 저장 실패:', err);
+          return res.status(500).send('서버 오류');
+        }
+        res.status(201).send('회원가입 성공');
+      });
     });
   } catch (err) {
     console.error('비밀번호 해시화 실패:', err);
