@@ -760,23 +760,6 @@ app.post('/getSchools', (req, res) => {
   });
 });
 
-app.post('/getDepartment', (req, res) => {
-  const { office, page, limit } = req.body;
-  const table = office.toLowerCase(); // 테이블명으로 사용
-
-  const offset = (page - 1) * limit;
-  const sql = `SELECT 학교명, 행정표준코드, 학과명 FROM ?? LIMIT ? OFFSET ?`; // 학과명 추가
-  db7.query(sql, [table, parseInt(limit), parseInt(offset)], (err, results) => {
-    if (err) {
-      console.error(err);
-      res.status(500).send('서버 오류');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-
 app.post('/login', (req, res) => {
   const idToken = req.body.idToken;
 
@@ -937,4 +920,21 @@ app.get('/getimg', (req, res) => {
 });
 
 
+app.get('/departments', (req, res) => {
+  const { schoolId } = req.query;
+
+  if (!schoolId) {
+    return res.status(400).send('schoolId가 필요합니다.');
+  }
+
+  const query = 'SELECT 학과명 FROM ?? WHERE 행정표준코드 = ?';
+  db7.query(query, [schoolId], (err, results) => {
+    if (err) {
+      console.error('쿼리 실행 중 오류 발생:', err.stack);
+      return res.status(500).send('서버 오류 발생');
+    }
+
+    res.json(results);
+  });
+});
 
