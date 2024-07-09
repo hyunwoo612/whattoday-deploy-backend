@@ -919,21 +919,23 @@ app.get('/getimg', (req, res) => {
   });
 });
 
-
 app.get('/departments', (req, res) => {
-  const { schoolId } = req.query;
+  const { office, schoolCode } = req.query;
 
-  if (!schoolId) {
-    return res.status(400).send('schoolId가 필요합니다.');
+  if (!office) {
+    res.status(400).send('office 파라미터가 필요합니다.');
+    return;
   }
 
-  const query = 'SELECT 학과명 FROM ?? WHERE 행정표준코드 = ?';
-  db7.query(query, [schoolId], (err, results) => {
-    if (err) {
-      console.error('쿼리 실행 중 오류 발생:', err.stack);
-      return res.status(500).send('서버 오류 발생');
-    }
+  const table = office.toLowerCase();
 
+  const sql = `SELECT 학과명 FROM ?? WHERE 학교명 = ?`;
+  db7.query(sql, [table, schoolCode], (err, results) => {
+    if (err) {
+      console.error('SQL Error: ', err);
+      res.status(500).send('서버 오류 발생');
+      return;
+    }
     res.json(results);
   });
 });
