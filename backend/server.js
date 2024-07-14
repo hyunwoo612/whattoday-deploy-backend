@@ -276,7 +276,7 @@ app.get("/timetabledata", (req, res) => {
     const endDate = new Date('2024-12-31');
 
     const fetchTimetableData = async (start, end) => {
-      const apiUrl = `https://open.neis.go.kr/hub/hisTimetable?ATPT_OFCDC_SC_CODE=${Office}&SD_SCHUL_CODE=${schoolCode}&KEY=9333296d834848e0939ca37ddad7d407&Type=json&pIndex=1&pSize=1000&TI_FROM_YMD=${start}&TI_TO_YMD=${end}&GRADE=${grade}&CLASS_NM=${Class}&DDDEP_NM=소프트웨어개발과`;
+      const apiUrl = `https://open.neis.go.kr/hub/hisTimetable?ATPT_OFCDC_SC_CODE=${Office}&SD_SCHUL_CODE=${schoolCode}&KEY=9333296d834848e0939ca37ddad7d407&Type=json&pIndex=1&pSize=1000&TI_FROM_YMD=${start}&TI_TO_YMD=${end}&GRADE=${grade}&CLASS_NM=${Class}`;
       try {
         const response = await axios.get(apiUrl);
         
